@@ -1,0 +1,4 @@
+interface:
+  display_name: "Burn Bilingual Subtitles"
+  short_description: "Burn styled bilingual subtitles."
+  default_prompt: "Burn bilingual Chinese and English subtitles into the provided video using the established yellow Chinese and white English outlined style."

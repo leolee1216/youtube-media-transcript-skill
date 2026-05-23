@@ -60,6 +60,9 @@ Rules:
 
 - Use the final downloaded MP4 as the timing source. Extract its audio to `16kHz mono WAV` and run Whisper on that WAV, not on the standalone MP3.
 - Keep the standalone MP3 for archive/listening only. MP3 can have encoder delay or a different time base from the video timeline.
+- On Apple Silicon Macs, prefer `whisper.cpp` / `whisper-cli` with Metal acceleration for older automatic end-to-end runs when a real ggml model is available. Use `WHISPER_BACKEND=auto` to prefer `whisper.cpp` and fall back to Python Whisper, `WHISPER_BACKEND=whispercpp` to require it, or `WHISPER_BACKEND=python` for the original word-timestamp path.
+- `whisper.cpp` requires a ggml model such as `ggml-small.en.bin`; set `WHISPER_CPP_MODEL=/path/to/ggml-small.en.bin` when the model is not in the default search locations. Do not use the Homebrew `for-tests-ggml-tiny.bin` model for production subtitles.
+- In Codex Desktop, `whisper-cli` Metal execution may need the end-to-end pipeline command to run with a persisted narrow approval, similar to the Ollama translation command.
 - Run Whisper with `--word_timestamps True` and `--output_format json`.
 - Generate English SRT from Whisper JSON word timestamps with `tools/resegment_en_json_words.py`.
 - Each cue timestamp must come from the first and last word in that cue. Do not allocate or redistribute cue times by character length, text length, or sentence proportion.
@@ -94,6 +97,10 @@ Translate only after the user confirms the English SRT draft.
 Default translation method:
 
 - Use LLM semantic translation as the default Chinese subtitle translation workflow.
+- Default local Chinese subtitle translation model should be `translategemma:4b`.
+- Run Chinese translation through `tools/translate_srt_with_ollama.py` with the Ollama CLI backend, for example `--model translategemma:4b --backend cli --batch-size 8`. Do not call `http://127.0.0.1:11434` directly from an ad-hoc Python snippet during normal skill use.
+- In Codex Desktop, local network access to `127.0.0.1:11434` is blocked inside the normal workspace sandbox even when macOS Local Network permission is enabled. The working path is to run the translation script as the top-level command with a persisted narrow prefix approval.
+- Use the persisted command prefix `python3 tools/translate_srt_with_ollama.py` for this workflow so future subtitle translations can run automatically while keeping the approval scope limited. If the prefix is missing and the translation script reports `operation not permitted`, request that exact persisted prefix once; do not switch models or rewrite the translation workflow.
 - Do not use `tools/translate_srt_en_to_zh.py` / `Helsinki-NLP/opus-mt-en-zh` as the default path, because it is prone to inaccurate wording, weak context handling, and subtitle artifacts.
 - Treat the Helsinki local model only as an offline fallback when the user explicitly accepts lower quality or no LLM/network option is available.
 - Translate in batches if needed, but preserve each SRT cue number and timestamp exactly.

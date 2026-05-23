@@ -1,104 +1,108 @@
-# youtube-media-transcript-skill
+# YouTube Media Transcript Skills
 
-A shareable Codex workflow for:
+Shareable Codex skills for a YouTube subtitle workflow:
 
-- downloading YouTube `mp4` and `mp3`
-- generating English `srt` subtitles with Whisper
-- translating subtitles into Chinese `srt`
-- organizing outputs in dated per-video folders
+- `youtube-media-transcript`: download YouTube media, create an English SRT draft, translate to Chinese, and write final subtitle files after confirmation.
+- `burn-bilingual-subtitles`: burn confirmed Chinese and English subtitles into an MP4 with the established bilingual style.
 
-## What This Repo Contains
+The workflow is designed for careful staged review: English draft first, Chinese draft second, final files only after confirmation.
 
-- `tools/run_youtube_media_subtitle_pipeline.sh`: the main end-to-end workflow
-- `tools/translate_srt_en_to_zh.py`: English-to-Chinese subtitle translation
-- `tools/polish_zh_srt.py`: light Chinese subtitle polishing
-- `skill-template/SKILL.template.md`: the skill template used during installation
-- `install_skill.sh`: installs the skill into `~/.codex/skills`
+## Repository Layout
 
-## Prerequisites
+```text
+skills/
+  youtube-media-transcript/
+    SKILL.md
+    scripts/
+      resegment_en_json_words.py
+      split_zh_srt_by_length.py
+      translate_srt_with_ollama.py
+      polish_zh_srt.py
+      normalize_en_srt_terms.py
+      clean_srt_rollup.py
+  burn-bilingual-subtitles/
+    SKILL.md
+    scripts/
+      render_bilingual_overlay.swift
+    agents/
+      openai.yaml
+install_skill.sh
+setup_check.sh
+requirements.txt
+```
 
-- macOS or Linux
-- `yt-dlp`
-- `ffmpeg`
+## Requirements
+
+Recommended environment:
+
+- macOS
+- Codex desktop app
 - Python 3.9+
-- a working `whisper` CLI
-- Chrome cookies available for YouTube access
+- `yt-dlp`
+- `ffmpeg` and `ffprobe`
+- OpenAI Whisper CLI
+- Optional but recommended on Apple Silicon: `whisper.cpp` CLI (`whisper-cli`) plus a production ggml model such as `ggml-small.en.bin`
+- Ollama with `translategemma:4b`
 
-Python packages:
-
-```bash
-pip install openai-whisper transformers sentencepiece
-```
-
-## Installation
-
-1. Clone this repo somewhere stable:
+Install common dependencies:
 
 ```bash
-git clone <your-repo-url>
-cd youtube-media-transcript-skill
+brew install yt-dlp ffmpeg whisper-cpp
+pip3 install -r requirements.txt
+ollama pull translategemma:4b
 ```
 
-2. Install Python dependencies:
+Keep Ollama running before asking Codex to translate Chinese subtitles. In Codex Desktop, use the persisted narrow command prefix `python3 tools/translate_srt_with_ollama.py` for this workflow; direct sandbox access to `127.0.0.1:11434` may be blocked.
 
-```bash
-pip install -r requirements.txt
-```
+## Install Skills
 
-3. Install the Codex skill:
+Clone this repo and run:
 
 ```bash
 ./install_skill.sh
 ```
 
-This creates:
+This copies both skills into:
 
-`~/.codex/skills/youtube-media-transcript/SKILL.md`
-
-and points it at your cloned repo path.
-
-## Usage In Codex
-
-In a Codex thread, either:
-
-- paste a YouTube link and ask to use the `youtube-media-transcript` skill
-- or run the workflow directly from this repo
-
-## Direct CLI Usage
-
-```bash
-./tools/run_youtube_media_subtitle_pipeline.sh "<youtube-url>"
+```text
+~/.codex/skills/
 ```
 
-Optional arguments:
+Then restart Codex or start a new Codex thread if the skills do not appear immediately.
+
+## Check Setup
+
+Run:
 
 ```bash
-./tools/run_youtube_media_subtitle_pipeline.sh "<youtube-url>" 2026-04-12 chrome
+./setup_check.sh
 ```
 
-## Output Layout
+The check verifies the main command-line tools and confirms whether Ollama can see `translategemma:4b`.
 
-Outputs are stored in:
+## Usage
 
-`downloads/youtube/YYYY-MM-DD/<video-slug>/`
+For transcription and translation, paste a YouTube URL into Codex and ask it to use `youtube-media-transcript`.
 
-Inside each item folder:
+The default flow is:
 
-- `video/`: MP4
-- `audio/`: MP3
-- `transcripts/`: `*.en.srt` and `*.zh.srt`
-- `logs/`: workflow logs
-- `manifest.txt`: job metadata and output paths
+1. Download MP4 and MP3.
+2. Extract WAV from the final MP4.
+3. Run Whisper with word timestamps.
+4. Generate an English draft SRT.
+5. Wait for user confirmation.
+6. Translate to Chinese with `translategemma:4b`.
+7. Wait for user confirmation.
+8. Write final `.en.srt` and split `.zh.srt`.
 
-## Publish To GitHub
+For hard-subtitled video export, ask Codex to use `burn-bilingual-subtitles` with a video plus matching `.en.srt` and `.zh.srt`.
 
-After reviewing the repo locally:
+## Notes
 
-```bash
-git init
-git add .
-git commit -m "Add youtube media transcript skill"
-git branch -M main
-git remote add origin <your-github-repo-url>
-git push -u origin main
-```
+- The Chinese translation path currently favors quality over speed and uses `translategemma:4b`.
+- Automatic end-to-end runs support `WHISPER_BACKEND=auto|whispercpp|python`. On Apple Silicon, `auto` prefers `whisper-cli` with Metal acceleration when a ggml model is available, then falls back to Python Whisper.
+- Set `WHISPER_CPP_MODEL=/path/to/ggml-small.en.bin` when the ggml model is not under `./models`, `~/.cache/whisper.cpp`, or `/opt/homebrew/share/whisper-cpp`.
+- Codex should run Chinese translation through `tools/translate_srt_with_ollama.py --backend cli`; approve and persist the prefix `python3 tools/translate_srt_with_ollama.py` once if prompted.
+- Technical terms are intentionally protected, including `agent -> 智能体`, `prompt -> 提示词`, `training data -> 训练数据`, and preserving `token`, `GitHub`, `OpenAI`, `ChatGPT`, `Codex`, and `Claude Code`.
+- Final Chinese subtitles are split for readability, with checks to avoid dangling connector fragments such as a cue ending with `并` or `并且`.
+- The bilingual burn skill uses native `ffmpeg` subtitle rendering when available and a bundled Swift/AppKit overlay fallback on macOS.
