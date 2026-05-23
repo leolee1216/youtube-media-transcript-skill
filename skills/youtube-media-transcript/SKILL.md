@@ -16,11 +16,22 @@ The default mode is no longer "generate everything and deliver files." The defau
 5. Only after Chinese confirmation, write final `.en.srt` and `.zh.srt` files.
 6. Before writing final Chinese subtitles, automatically split long Chinese cues into shorter reading-friendly cues.
 
+## First-Use Setup
+
+When this skill is installed from the public GitHub repository on a new machine, do not assume the machine is already configured.
+
+- Cloning or installing this skill copies instructions and bundled helper scripts only. It does not automatically install Homebrew packages, Python packages, Ollama, Ollama models, whisper.cpp ggml models, browser cookies, or Codex command approvals.
+- If the user is setting this up for the first time, first ask Codex to clone the repo, run `./install_skill.sh`, and run `./setup_check.sh` from the repo root.
+- If setup dependencies are missing, report the concrete missing tools and suggest the README commands. Do not silently install packages or pull large models unless the user approves.
+- For local Ollama translation, confirm Ollama is running and `translategemma:4b` is available. If not, suggest `ollama pull translategemma:4b`.
+- For Apple Silicon acceleration, prefer a production whisper.cpp model such as `ggml-small.en.bin` under `./models/`, `~/.cache/whisper.cpp/`, or `/opt/homebrew/share/whisper-cpp/`. Do not use Homebrew's `for-tests-ggml-tiny.bin` for production subtitles.
+- In Codex Desktop, the first Ollama or whisper.cpp run may need persisted narrow command approval. Prefer these prefixes when prompted: `python3 tools/translate_srt_with_ollama.py`, `tools/run_youtube_media_subtitle_pipeline.sh`, and `/opt/homebrew/bin/whisper-cli`.
+
 ## Workspace
 
-Use this workspace root:
+Use the user's active project workspace or the cloned repository root. Do not assume the original author's local path exists.
 
-`/Users/sanger/Desktop/Skills探索/AI兔扒哥工作流探索`
+If this repository is present, prefer its `tools/` directory for legacy end-to-end scripts. If only the installed skill is available, use helper scripts from the installed skill's sibling `scripts/` directory.
 
 Store working artifacts under:
 

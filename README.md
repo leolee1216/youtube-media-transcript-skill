@@ -44,6 +44,8 @@ Recommended environment:
 - Optional but recommended on Apple Silicon: `whisper.cpp` CLI (`whisper-cli`) plus a production ggml model such as `ggml-small.en.bin`
 - Ollama with `translategemma:4b`
 
+Codex can help run these checks and commands, but cloning this repository does not automatically install Homebrew packages, Python packages, Ollama models, browser access, or Codex command approvals. A new user should expect a one-time setup pass before the first real video job.
+
 Install common dependencies:
 
 ```bash
@@ -53,6 +55,16 @@ ollama pull translategemma:4b
 ```
 
 Keep Ollama running before asking Codex to translate Chinese subtitles. In Codex Desktop, use the persisted narrow command prefix `python3 tools/translate_srt_with_ollama.py` for this workflow; direct sandbox access to `127.0.0.1:11434` may be blocked.
+
+For whisper.cpp acceleration, place a production ggml model in one of these locations:
+
+```text
+./models/ggml-small.en.bin
+~/.cache/whisper.cpp/ggml-small.en.bin
+/opt/homebrew/share/whisper-cpp/ggml-small.en.bin
+```
+
+The Homebrew test model `for-tests-ggml-tiny.bin` is only for smoke tests and should not be used for production subtitles.
 
 ## Install Skills
 
@@ -79,6 +91,24 @@ Run:
 ```
 
 The check verifies the main command-line tools and confirms whether Ollama can see `translategemma:4b`.
+
+## First Run In Codex
+
+Give Codex the GitHub URL and ask it to clone the repo, install the skills, and run the setup check. A useful prompt is:
+
+```text
+Clone https://github.com/leolee1216/youtube-media-transcript-skill, run ./install_skill.sh, run ./setup_check.sh, and tell me what dependencies or models still need setup.
+```
+
+On the first actual job, Codex may ask for narrow persisted approvals. Prefer allowing these exact prefixes when prompted:
+
+```text
+python3 tools/translate_srt_with_ollama.py
+tools/run_youtube_media_subtitle_pipeline.sh
+/opt/homebrew/bin/whisper-cli
+```
+
+These approvals let Codex reach local Ollama and run Metal-accelerated whisper.cpp without asking every time.
 
 ## Usage
 
